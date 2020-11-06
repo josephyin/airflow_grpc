@@ -25,7 +25,7 @@ dag = DAG(
     schedule_interval=None
 )
 
-def callback(response: Any, context: Dict):
+def callback(response: Any, **context):
     return response
 
 run_this = GrpcOperator(
