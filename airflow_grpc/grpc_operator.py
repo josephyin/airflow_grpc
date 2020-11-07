@@ -37,7 +37,6 @@ class GrpcOperator(BaseOperator):
     @apply_defaults
     def __init__(
             self,
-            *,
             stub_class: Callable,
             call_func: str,
             grpc_conn_id: str = "grpc_default",
@@ -47,9 +46,10 @@ class GrpcOperator(BaseOperator):
             streaming: bool = False,
             response_callback: Optional[Callable] = None,
             log_response: bool = False,
+            *args,
             **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
+        super(GrpcOperator, self).__init__(*args, **kwargs)
         self.stub_class = stub_class
         self.call_func = call_func
         self.grpc_conn_id = grpc_conn_id
@@ -59,7 +59,6 @@ class GrpcOperator(BaseOperator):
         self.streaming = streaming
         self.log_response = log_response
         self.response_callback = response_callback
-        self.context = {}
 
     def _get_grpc_hook(self) -> GrpcHook:
         return GrpcHook(
@@ -71,9 +70,12 @@ class GrpcOperator(BaseOperator):
     def execute(self, context) -> None:
         hook = self._get_grpc_hook()
         self.log.info("Calling gRPC service")
-        self.context = context
+        self.log.info("context: {}".format(context))
         # grpc hook always yield
         responses = hook.run(self.stub_class, self.call_func, streaming=self.streaming, data=self.data)
+
+        context.update(self.data)
+        self.data = context
 
         for response in responses:
             self._handle_response(response)
@@ -82,4 +84,4 @@ class GrpcOperator(BaseOperator):
         if self.log_response:
             self.log.info(repr(response))
         if self.response_callback:
-            self.response_callback(response, **self.context)
+            self.response_callback(response, **self.data)

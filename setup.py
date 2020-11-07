@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="airflow-grpc",
-    version="0.0.2",
+    version="0.0.4",
     author="Joseph Yin",
     author_email="josephyin@outlook.com",
     description="airflow grpc operator",
