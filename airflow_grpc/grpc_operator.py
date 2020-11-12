@@ -13,6 +13,8 @@ class GrpcOperator(BaseOperator):
     :type stub_class: gRPC stub class generated from proto file
     :param call_func: The client function name to call the gRPC endpoint
     :type call_func: gRPC client function name for the endpoint generated from proto file, str
+    :param request_data_func: The request data function to call the gRPC endpoint
+    :type request_data_func: gRPC request message function for the endpoint generated from proto file
     :param grpc_conn_id: The connection to run the operator against
     :type grpc_conn_id: str
     :param data: The data to pass to the rpc call
@@ -30,6 +32,8 @@ class GrpcOperator(BaseOperator):
         push xcom or other after task actions
     :param log_response: A flag to indicate if we need to log the response
     :type log_response: boolean
+    :param xcom_task_id: from XCOM get the data by task_id
+    :type xcom_task_id: str
     """
 
     template_fields = ('stub_class', 'call_func', 'data')
@@ -39,6 +43,7 @@ class GrpcOperator(BaseOperator):
             self,
             stub_class: Callable,
             call_func: str,
+            request_data_func: Callable,
             grpc_conn_id: str = "grpc_default",
             data: Optional[dict] = None,
             interceptors: Optional[List[Callable]] = None,
@@ -46,6 +51,7 @@ class GrpcOperator(BaseOperator):
             streaming: bool = False,
             response_callback: Optional[Callable] = None,
             log_response: bool = False,
+            xcom_task_id: Optional[str] = None,
             *args,
             **kwargs,
     ) -> None:
@@ -53,12 +59,15 @@ class GrpcOperator(BaseOperator):
         self.stub_class = stub_class
         self.call_func = call_func
         self.grpc_conn_id = grpc_conn_id
-        self.data = data or {}
+        self.data = {'request': request_data_func(**data)} or {}
         self.interceptors = interceptors
         self.custom_connection_func = custom_connection_func
         self.streaming = streaming
         self.log_response = log_response
         self.response_callback = response_callback
+        if xcom_task_id:
+            task_data = kwargs['ti'].xcom_pull(task_ids=xcom_task_id)
+            self.data.update({'request': request_data_func(**task_data)})
 
     def _get_grpc_hook(self) -> GrpcHook:
         return GrpcHook(
