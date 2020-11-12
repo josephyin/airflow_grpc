@@ -59,15 +59,14 @@ class GrpcOperator(BaseOperator):
         self.stub_class = stub_class
         self.call_func = call_func
         self.grpc_conn_id = grpc_conn_id
-        self.data = {'request': request_data_func(**data)} or {}
+        self.request_data_func = request_data_func
+        self.data = data or {}
         self.interceptors = interceptors
         self.custom_connection_func = custom_connection_func
         self.streaming = streaming
         self.log_response = log_response
         self.response_callback = response_callback
-        if xcom_task_id:
-            task_data = kwargs['ti'].xcom_pull(task_ids=xcom_task_id)
-            self.data.update({'request': request_data_func(**task_data)})
+        self.xcom_task_id = xcom_task_id
 
     def _get_grpc_hook(self) -> GrpcHook:
         return GrpcHook(
@@ -80,8 +79,15 @@ class GrpcOperator(BaseOperator):
         hook = self._get_grpc_hook()
         self.log.info("Calling gRPC service")
         self.log.info("context: {}".format(context))
+        if self.xcom_task_id:
+            task_data = context['ti'].xcom_pull(task_ids=self.xcom_task_id)
+            self.data.update(task_data)
         # grpc hook always yield
-        responses = hook.run(self.stub_class, self.call_func, streaming=self.streaming, data=self.data)
+        if self.data:
+            responses = hook.run(self.stub_class, self.call_func, streaming=self.streaming,
+                                 data={'request': self.request_data_func(**self.data)})
+        else:
+            responses = hook.run(self.stub_class, self.call_func, streaming=self.streaming)
 
         context.update(self.data)
         self.data = context
