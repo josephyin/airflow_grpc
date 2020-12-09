@@ -11,6 +11,11 @@ grpcio
 protobuf
 ```
 
+## How to install:
+```
+pip install airflow-grpc
+```
+
 ## How to use:
 ```
 from airflow_grpc.grpc_operator import GrpcOperator
@@ -28,13 +33,15 @@ dag = DAG(
 def callback(response: Any, **context):
     return response
 
-run_this = GrpcOperator(
-    task_id='task_id',
-    dag=dag,
-    grpc_conn_id='grpc_connection_id_on_admin_connections',
-    stub_class=GrpcStubClass,
-    call_func='stub_function',
-    data={'request': proto_request_data},
-    response_callback=callback
+run_this = GrpcOperator(task_id='task_id',
+                        dag=dag,
+                        grpc_conn_id='your_grpc_connection_id_on_admin_connections',
+                        stub_class=YOUR_GRPC_STUB_CLASS,
+                        call_func='your_grpc_stub_function',
+                        request_data_func=YOUR_GRPC_MESSAGE_FOR_REQUEST,
+                        response_callback=YOUR_RESPOSNE_METHOD,
+                        xcom_task_id='XCOM_TASK_ID',
+                        data={'request':YOUR_REQUEST_DATA_DICT}
 )
+
 ```
