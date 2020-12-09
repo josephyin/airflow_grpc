@@ -41,7 +41,7 @@ run_this = GrpcOperator(task_id='task_id',
                         request_data_func=YOUR_GRPC_MESSAGE_FOR_REQUEST,
                         response_callback=YOUR_RESPOSNE_METHOD,
                         xcom_task_id='XCOM_TASK_ID',
-                        data={'request':YOUR_REQUEST_DATA_DICT}
+                        data=YOUR_REQUEST_DATA_DICT
 )
 
 ```
