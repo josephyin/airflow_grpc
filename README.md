@@ -17,6 +17,7 @@ pip install airflow-grpc
 ```
 
 ## How to use:
+* airflow 1.10.x
 ```
 from airflow_grpc.grpc_operator import GrpcOperator
 args = {
@@ -44,4 +45,21 @@ run_this = GrpcOperator(task_id='task_id',
                         data=YOUR_REQUEST_DATA_DICT
 )
 
+```
+
+* airflow 2.0.0
+
+First must implement the stub_class method
+```
+import xxx_pb2_grpc, xxx_pb2
+from utils.grpc_hook import BaseGrpcHook
+
+
+class xxxGrpcHook(BaseGrpcHook):
+    def stub_class(self, channel):
+        return xxx_pb2_grpc.xxxServiceStub(channel)
+```
+Use the implemented class
+```
+xxxGrpcHook().run('MethodName', {'request': xxx_pb2.xxxRequestMethod(**data_dict)})
 ```

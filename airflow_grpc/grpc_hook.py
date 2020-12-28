@@ -2,7 +2,7 @@
 from typing import Callable, Generator, List, Optional
 
 import grpc
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 
 
 class GrpcHook(BaseHook):
@@ -69,3 +69,48 @@ class GrpcHook(BaseHook):
                     ex.details(),  # pylint: disable=no-member
                 )
                 raise ex
+
+
+class BaseGrpcHook(BaseHook):
+    """
+        General interaction with gRPC servers.
+        :param grpc_conn_id: The connection ID to use when fetching connection info.
+        :type grpc_conn_id: str
+    """
+
+    def __init__(self, grpc_conn_id: str) -> None:
+        super().__init__('grpc')
+        self.grpc_conn_id = grpc_conn_id
+        self.conn = self.get_connection(self.grpc_conn_id)
+
+    def get_conn(self) -> grpc.Channel:
+        base_url = self.conn.host
+
+        if self.conn.port:
+            base_url = base_url + ":" + str(self.conn.port)
+        channel = grpc.insecure_channel(base_url)
+        return channel
+
+    def run(self, call_func: str,
+            data: Optional[dict] = None):
+        if data is None:
+            data = {}
+        with self.get_conn() as channel:
+            stub = self.stub_class(channel)
+            try:
+                rpc_func = getattr(stub, call_func)
+                response = rpc_func(**data)
+                return response
+            except grpc.RpcError as ex:
+                self.log.exception(
+                    "Error occurred when calling the grpc service: %s, method: %s \
+                    status code: %s, error details: %s",
+                    stub.__class__.__name__,
+                    call_func,
+                    ex.code(),  # pylint: disable=no-member
+                    ex.details(),  # pylint: disable=no-member
+                )
+                raise ex
+
+    def stub_class(self, channel):
+        raise NotImplementedError()
